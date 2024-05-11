@@ -19,16 +19,16 @@ from src.visualization.figure_accuracy_per_epoch import losses_plot
 @click.option("--n_epochs", default=50, type=int)
 @click.option("--lr", default=0.001, type=float)
 @click.option("--noise_factor", default=40, type=float)
-@click.option("--batch_size", default=64, type=int)
-@click.option("--set_size", default=2500, type=int)
+@click.option("--batch_size", default=1, type=int)
+@click.option("--set_size", default=300, type=int)
 @click.option("--train_size", default=0.7, type=float)
 def train_autoencoder(output_path_model: str,
                   output_path_figure: str,
                   n_epochs: int = 50,
                   lr: float = 0.001,
                   noise_factor: float = 40,
-                  batch_size: int=64,
-                  set_size: int=2500,
+                  batch_size: int=1,
+                  set_size: int=300,
                   train_size: float=0.7,
                   L=F.mse_loss):
     """Тренировка одного denoising автоенкодера с определенным уровнем шума.
@@ -116,6 +116,8 @@ def train_autoencoder(output_path_model: str,
         val_losses.append(np.mean(val_losses_per_epoch))
 
     torch.save(autoencoder.encoder, output_path_model)
+    train_losses = [float(arr) for arr in train_losses]
+    val_losses = [float(arr) for arr in val_losses]
     losses_plot(train_losses=train_losses,
                     valid_losses=val_losses,
                     output_path=output_path_figure)
