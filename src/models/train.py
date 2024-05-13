@@ -10,6 +10,8 @@ import warnings
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
+from sklearn.model_selection import train_test_split
+
 from src.models.VanillaAutoencoder import VanillaAutoencoder
 from src.data.CustomDataSet import CustomDataSet
 from src.data.CustomDataSet import collate_fn
@@ -26,12 +28,12 @@ from src.visualization.figure_accuracy_per_epoch import losses_plot
 # @click.option("--train_size", default=0.7, type=float)
 def train_autoencoder(output_path_model: str,
                   output_path_figure: str,
-                  n_epochs: int = 1,
+                  n_epochs: int = 50,
                   lr: float = 0.001,
                   noise_factor: float = 40,
-                  batch_size: int=1,
-                  set_size: int=150,
-                  train_size: float=0.7,
+                  batch_size: int = 16,
+                  set_size: int = 150,
+                  train_size: float = 0.7,
                   L=F.mse_loss):
     """Тренировка одного denoising автоенкодера с определенным уровнем шума.
      Каждый батч состоит из оригинальных профилей и в collate_fn к нему добавляется
@@ -63,29 +65,32 @@ def train_autoencoder(output_path_model: str,
     train_losses = []
     val_losses = []
 
-    data_set = pd.read_csv('data\\processed\\original_MS_profiles.csv', sep=';')
+    data_set = pd.read_csv('..\\..\\data\\processed\\original_MS_profiles.csv', sep=';')
+    targets = data_set['group'].to_numpy()
 
-    train_set_size = int(set_size * train_size / len(data_set.index))
-    valid_set_size = int(set_size * (1 - train_size) / len(data_set.index))
+    # train_set_size = int(set_size * train_size / len(data_set.index))
+    # valid_set_size = int(set_size * (1 - train_size) / len(data_set.index))
 
 #   делаем train/valid выборки тем, что дублируем строки из оригинального df до нужного размера
 #   после, окно размером с batch_size будет скользить по полученным наборам, случайно зашумлять их,
 #   и отдавать на вход модели
-    train_set = pd.concat([data_set] * (train_set_size + 1), axis=0, ignore_index=True)
-    valid_set = pd.concat([data_set] * (valid_set_size + 1), axis=0, ignore_index=True)
+#     train_set = pd.concat([data_set] * (train_set_size + 1), axis=0, ignore_index=True)
+#     valid_set = pd.concat([data_set] * (valid_set_size + 1), axis=0, ignore_index=True)
 
-    train_set = CustomDataSet(train_set.drop('group', axis=1).drop('ID', axis=1).to_numpy(dtype=float),
-                              train_set['group'],
-                              train_set['ID'])
+    all_set = CustomDataSet(data_set.drop('group', axis=1).drop('ID', axis=1).to_numpy(dtype=float),
+                              data_set['group'],
+                              data_set['ID'])
+
+    train_set, valid_set = train_test_split(all_set, train_size=train_size, stratify=targets, shuffle=True)
 
     train_loader = DataLoader(train_set,
                               batch_size=batch_size,
                               collate_fn=lambda batch: collate_fn(batch, noise_factor=noise_factor),
                               shuffle=True)
 
-    valid_set = CustomDataSet(valid_set.drop('group', axis=1).drop('ID', axis=1).to_numpy(dtype=float),
-                              valid_set['group'],
-                              valid_set['ID'])
+    # valid_set = CustomDataSet(valid_set.drop('group', axis=1).drop('ID', axis=1).to_numpy(dtype=float),
+    #                           valid_set['group'],
+    #                           valid_set['ID'])
 
     valid_loader = DataLoader(valid_set,
                                batch_size=batch_size,
