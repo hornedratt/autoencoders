@@ -40,10 +40,3 @@ def hopkins_statistic(X: np.ndarray) -> float:
 
 if __name__ == "__main__":
     hopkins_statistic()
-
-l = [] #list to hold values for each call
-for i in range(20):
-    H=hopkins_statistic(X)
-    l.append(H)
-#print average value:
-np.mean(l)

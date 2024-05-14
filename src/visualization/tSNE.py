@@ -42,8 +42,8 @@ def tSNE(input_path: str, output_path: str) -> None:
 
     return None
 
-tSNE('../../data/processed/sets/set_normal_noise_40%.pkl', '../../reports/figures/tSNE_40%.png')
+# tSNE('../../data/processed/sets/set_normal_noise_40%.pkl', '../../reports/figures/tSNE_40%.png')
 
-# if __name__ == "__main__":
-#     tSNE()
+if __name__ == "__main__":
+    tSNE()
 

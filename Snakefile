@@ -4,8 +4,14 @@ rule all:
     input:
 #       наборы данных
         "data\\processed\\original_MS_profiles.csv",
+        "data\\processed\\original_MS_profiles.pkl",
         [f"data\\processed\\sets\\set_normal_noise_{noise}%.pkl" for noise in NOISES],
         [f"data\\processed\\sets\\test_normal_noise_{noise}%.pkl" for noise in NOISES],
+
+        "reports\\figures\\tSNE_orig.png",
+        "reports\\Hopkins_orig.txt",
+        [f"reports\\figures\\tSNE_{noise}%.png" for noise in NOISES],
+        [f"reports\\Hopkins_{noise}%.txt" for noise in NOISES],
 
 #       отчеты о тренировке кодера
         [f"reports\\figures\\DAE_norm_noise_{noise}%.png" for noise in NOISES],
@@ -41,6 +47,11 @@ rule make_original_profiles_csv:
         "data\\processed\\original_MS_profiles.csv"
     shell:
         "python -m src.data.get_csv_with_original_profiles {input} {output}"
+
+rule wrap_orig_data:
+    shell:
+        "python -m src.data.wraper_for_orig_data"
+
 rule add_normal_noise:
     input:
         "data\\processed\\original_MS_profiles.csv"
@@ -50,6 +61,28 @@ rule add_normal_noise:
         noise="(40)"
     shell:
         "python -m src.data.test_noise {input} {output} --noise {wildcards.noise}"
+
+rule preanalysis_orig:
+    input:
+        "data\\processed\\original_MS_profiles.pkl"
+    output:
+        "reports\\figures\\tSNE_orig.png",
+        "reports\\Hopkins_orig.txt"
+    shell:
+        "python -m src.features.preanalysis {input} {output}"
+
+rule preanalysis_noise:
+    input:
+        "data\\processed\\sets\\set_normal_noise_{noise}%.pkl"
+    output:
+        "reports\\figures\\tSNE_{noise}%.png",
+        "reports\\Hopkins_{noise}%.txt"
+
+    wildcard_constraints:
+        noise="(40)"
+    shell:
+        "python -m src.features.preanalysis {input} {output}"
+
 rule train_autoencoder:
     output:
         "models\\DAE_norm_noise_{noise}%.pkl",
@@ -58,6 +91,7 @@ rule train_autoencoder:
         noise="(40)"
     shell:
         "python -m src.models.train {output} --noise_factor {wildcards.noise}"
+
 rule heat_map:
     input:
         "models\\DAE_norm_noise_{noise}%.pkl",
@@ -69,6 +103,7 @@ rule heat_map:
         noise="(40)"
     shell:
         "python -m src.visualization.heat_map {input} {output}"
+
 rule train_forest:
     input:
         "models\\DAE_norm_noise_{noise}%.pkl",
