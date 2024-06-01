@@ -82,5 +82,6 @@ def test_noise(input_path: str,
 # if __name__ == "__main__":
 #     test_noise()
 
-test_noise(os.path.join("..", "..", "data\\processed\\original_MS_profiles.csv"),
-           os.path.join("..", "..", "data\\processed\\sets\\big_test_set_normal_noise_40%.csv"))
+if __name__ == "__main__":
+    test_noise(os.path.join("..", "..", "data\\processed\\original_MS_profiles.csv"),
+               os.path.join("..", "..", "data\\processed\\sets\\big_test_set_normal_noise_40%.csv"))
