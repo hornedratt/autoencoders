@@ -5,17 +5,19 @@ import click
 import pickle
 import joblib
 import os
+import sqlite3
 
 from src.data.CustomDataSet import CustomDataSet
 
-def unwrapped_test_noise(input_path: str,
-                         output_path: str,
-                         noise: int,
-                         amount_additional_profiles: int,
+def save_to_sqlite(df, conn):
+    df.to_sql('large_table', conn, if_exists='append', index=False)
+
+def unwrapped_test_noise(amount_additional_profiles: int,
                          original_profile: pd.DataFrame,
                          noise_factor: float,
-                         columns_for_profile
-                         ) -> pd.DataFrame:
+                         columns_for_profile,
+                         conn
+                         ) -> None:
     main = original_profile
     num = main.drop('group').drop('ID').to_numpy(dtype=float)
     final_tmp = np.array([num])
@@ -31,9 +33,9 @@ def unwrapped_test_noise(input_path: str,
     final_tmp_pd['group'] = main['group']
     final_tmp_pd['ID'] = main['ID']
     final_tmp_pd.columns = columns_for_profile
+    save_to_sqlite(final_tmp_pd, conn)
 
-    return final_tmp_pd
-
+    return None
 
 # @click.command()
 # @click.argument("input_path", type=click.Path())
@@ -60,21 +62,20 @@ def test_noise(input_path: str,
     noise_factor = noise / 100
     final = pd.DataFrame({k: pd.Series(dtype=float) for k in original_profiles.columns})
 
-    finals = joblib.Parallel(n_jobs=5, backend='multiprocessing')(
-             joblib.delayed(unwrapped_test_noise)(input_path,
-                                             output_path,
-                                             noise,
-                                             amount_additional_profiles,
-                                             original_profiles.loc[i].T,
-                                             noise_factor,
-                                             original_profiles.columns) for i in pb.progressbar(range(len(original_profiles))))
+    conn = sqlite3.connect(output_path)
+    cursor = conn.cursor()
 
-    final = pd.concat(finals, axis=0)
-    final = CustomDataSet(final.drop('group', axis=1).drop('ID', axis=1).to_numpy(dtype=float),
-                          final['group'].reset_index(drop=True),
-                          final['ID'].reset_index(drop=True))
-    with open(output_path, 'wb') as file:
-        pickle.dump(final, file)
+    # Create table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS large_table ({} TEXT, {} TEXT, {})'''.format('group', 'ID', ', '.join([f'{i} DECIMAL(11, 10)' for i in original_profiles.columns[:len(original_profiles.columns)-3]])))
+    conn.commit()
+
+    joblib.Parallel(n_jobs=5, backend='multiprocessing')(
+             joblib.delayed(unwrapped_test_noise)(amount_additional_profiles,
+                                                  original_profiles.loc[i].T,
+                                                  noise_factor,
+                                                  original_profiles.columns,
+                                                  conn) for i in pb.progressbar(range(len(original_profiles))))
     return None
 
 
@@ -84,4 +85,4 @@ def test_noise(input_path: str,
 
 if __name__ == "__main__":
     test_noise(os.path.join("..", "..", "data\\processed\\original_MS_profiles.csv"),
-               os.path.join("..", "..", "data\\processed\\sets\\big_test_set_normal_noise_40%.csv"))
+               os.path.join("..", "..", "data\\processed\\sets\\big_test_set_normal_noise_40%.db"))
