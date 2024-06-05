@@ -4,6 +4,8 @@ import click
 import progressbar as pb
 import os
 import pickle
+import joblib
+import numpy as np
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
@@ -16,16 +18,12 @@ from src.data.CustomDataSet import CustomDataSet
 @click.command()
 @click.argument("data_path", type=click.Path())
 @click.argument("model_path", type=click.Path())
-@click.argument("output_path_csv", type=click.Path())
 @click.argument("output_path_hist_g", type=click.Path())
-@click.argument("output_path_hist_i", type=click.Path())
 @click.option("--train_size", default=0.7, type=float)
 @click.option("--amount", default=100, type=int)
 def cross_valid(data_path: str,
                 model_path: str,
-                output_path_csv: str,
                 output_path_hist_g: str,
-                output_path_hist_i: str,
                 train_size: float=0.7,
                 amount: int=10):
     """Кросс-валидация
@@ -45,36 +43,34 @@ def cross_valid(data_path: str,
 
     autoencoder = torch.load(model_path).to(device)
     valid_set.profile = autoencoder(valid_set.profile)
-    accuracies_ID = []
-    accuracies_group = []
-    for i in pb.progressbar(range(amount)):
-        train_idx, test_idx = train_test_split(list(range(len(valid_set))),
-                                                   train_size=train_size,
-                                                   shuffle=True)
-        classifier_group = RandomForestClassifier(n_estimators=10, min_samples_split=8, min_samples_leaf=4)
-        classifier_ID = RandomForestClassifier(n_estimators=10, min_samples_split=8, min_samples_leaf=4)
 
-#       тренируем очередной лес
-        embaddings, group, id = valid_set.subset(train_idx)
+    def unwrapped_func(set, seed, train_size):
+        targets = set.group.to_numpy()
+        train_idx, test_idx = train_test_split(list(range(len(set))),
+                                               train_size=train_size,
+                                               shuffle=True,
+                                               stratify=targets,
+                                               random_state=seed)
+        classifier_group = RandomForestClassifier()
+
+        #       тренируем очередной лес
+        embaddings, group, id = set.subset(train_idx)
         with torch.no_grad():
             embaddings = embaddings.numpy()
         classifier_group.fit(embaddings, group)
-        classifier_ID.fit(embaddings, id)
 
-#       тестируем полученный лес
-        embaddings, group, id = valid_set.subset(test_idx)
+        #       тестируем полученный лес
+        embaddings, group, id = set.subset(test_idx)
         with torch.no_grad():
             embaddings = embaddings.numpy()
-        pred_ID = classifier_ID.predict(embaddings)
         pred_group = classifier_group.predict(embaddings)
-        accuracies_ID.append(accuracy_score(id, pred_ID))
-        accuracies_group.append(accuracy_score(group, pred_group))
-    accuracies_ID = pd.DataFrame(accuracies_ID).T
-    accuracies_group = pd.DataFrame(accuracies_group).T
-    result = pd.concat([accuracies_group, accuracies_ID], axis=0)
-    result.index = ['group', 'ID']
 
-    result.to_csv(output_path_csv, sep=';', header=True, index=True)
+        return accuracy_score(group, pred_group)
+
+    accuracies_group = joblib.Parallel(n_jobs=5, backend='multiprocessing')(
+        joblib.delayed(unwrapped_func)(set=valid_set,
+                                       seed=i,
+                                       train_size=train_size) for i in pb.progressbar(range(amount)))
 
     df = accuracies_group.to_numpy()
     fig = px.histogram(df,
@@ -86,18 +82,6 @@ def cross_valid(data_path: str,
     fig.update_layout(showlegend=False)
     img_bytes = pio.to_image(fig, format="png")
     with open(output_path_hist_g, "wb") as f:
-        f.write(img_bytes)
-
-    df = accuracies_ID.to_numpy()
-    fig = px.histogram(df,
-                       title='accuracy ID',
-                       marginal='box',
-                       labels={'count': 'amount of trains', 'value': 'accuracy'},
-                       color_discrete_sequence=['indianred']
-                       )
-    fig.update_layout(showlegend=False)
-    img_bytes = pio.to_image(fig, format="png")
-    with open(output_path_hist_i, "wb") as f:
         f.write(img_bytes)
 
     # return None

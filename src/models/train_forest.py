@@ -17,13 +17,15 @@ from src.data.CustomDataSet import CustomDataSet
 @click.argument("output_path_group_rep", type=click.Path())
 @click.argument("output_path_id", type=click.Path())
 @click.argument("output_path_id_rep", type=click.Path())
+@click.option("--seed", type=int)
 def train_forest(model_path: str,
                  data_path: str,
                  output_data_test: str,
                  output_path_group: str,
                  output_path_group_rep: str,
                  output_path_id: str,
-                 output_path_id_rep: str):
+                 output_path_id_rep: str,
+                 seed: int=42):
     """Тренировка и тест 2-х случайных лесов: один по классифицирует погруппам, другой
     по штаммам. В data_path лежит полный сэт, его test часть сохраним отдельно, для использования в cross_noise,
     в тесте вместо профилей уже лежат эммбединги
@@ -47,7 +49,7 @@ def train_forest(model_path: str,
     targets = train_set.group.to_numpy()
 
 #   разбили на train и test
-    idx_train, idx_test = train_test_split(list(range(size)), train_size=0.7, stratify=targets)
+    idx_train, idx_test = train_test_split(list(range(size)), train_size=0.7, stratify=targets, random_state=seed)
     x_train, y_train_group, y_train_id = train_set.subset(idx_train)
     x_test, y_test_group, y_test_id = train_set.subset(idx_test)
 
@@ -59,7 +61,7 @@ def train_forest(model_path: str,
     x_train = autoencoder(x_train).detach().numpy()
     x_test = autoencoder(x_test).detach().numpy()
 
-    classifier = RandomForestClassifier(n_estimators=10, min_samples_split=8, min_samples_leaf=4)
+    classifier = RandomForestClassifier()
     classifier.fit(x_train, y_train_group)
     y_pred = classifier.predict(x_test)
     classification_report_group = classification_report(y_test_group,
@@ -70,7 +72,7 @@ def train_forest(model_path: str,
     with open(output_path_group, 'wb') as f:
         pickle.dump(classifier, f)
 
-    classifier = RandomForestClassifier(n_estimators=10, min_samples_split=8, min_samples_leaf=4)
+    classifier = RandomForestClassifier()
     classifier.fit(x_train, y_train_id)
     y_pred = classifier.predict(x_test)
     classification_report_id = classification_report(y_test_id,

@@ -20,7 +20,7 @@ from src.visualization.figure_accuracy_per_epoch import losses_plot
 @click.command()
 @click.argument("output_path_model", type=click.Path())
 @click.argument("output_path_figure", type=click.Path())
-@click.argument("--seed", default=42, type=int)
+@click.option("--seed", default=42, type=int)
 @click.option("--n_epochs", default=50, type=int)
 @click.option("--lr", default=0.001, type=float)
 @click.option("--noise_factor", default=40, type=float)
@@ -67,7 +67,7 @@ def train_autoencoder(output_path_model: str,
     train_losses = []
     val_losses = []
 
-    data_set = pd.read_csv('..\\..\\data\\processed\\original_MS_profiles.csv', sep=';')
+    data_set = pd.read_csv('data\\processed\\original_MS_profiles.csv', sep=';')
     targets = data_set['group'].to_numpy()
 
     # train_set_size = int(set_size * train_size / len(data_set.index))

@@ -4,14 +4,14 @@ rule all:
     input:
 #       наборы данных
         "data\\processed\\original_MS_profiles.csv",
-        "data\\processed\\original_MS_profiles.pkl",
+        # "data\\processed\\original_MS_profiles.pkl",
         [f"data\\processed\\sets\\set_normal_noise_{noise}%.pkl" for noise in NOISES],
         [f"data\\processed\\sets\\test_normal_noise_{noise}%.pkl" for noise in NOISES],
 
-        "reports\\figures\\tSNE_orig.png",
-        "reports\\Hopkins_orig.txt",
-        [f"reports\\figures\\tSNE_{noise}%.png" for noise in NOISES],
-        [f"reports\\Hopkins_{noise}%.txt" for noise in NOISES],
+        # "reports\\figures\\tSNE_orig.png",
+        # "reports\\Hopkins_orig.txt",
+        # [f"reports\\figures\\tSNE_{noise}%.png" for noise in NOISES],
+        # [f"reports\\Hopkins_{noise}%.txt" for noise in NOISES],
 
 #       отчеты о тренировке кодера
         [f"reports\\figures\\DAE_norm_noise_{noise}%.png" for noise in NOISES],
@@ -30,9 +30,7 @@ rule all:
         [f"reports\\figures\\forest_{noise}%_importances_ID.png" for noise in NOISES],
         [f"reports\\mz_features_{noise}%_group.txt" for noise in NOISES],
         [f"reports\\mz_features_{noise}%_ID.txt" for noise in NOISES],
-        [f"reports\\cross_valid_{noise}%_result.csv" for noise in NOISES],
-        [f"reports\\figures\\cross_valid_{noise}%_result_group.png" for noise in NOISES],
-        [f"reports\\figures\\cross_valid_{noise}%_result_ID.png" for noise in NOISES],
+        f"reports\\figures\\cross_valid_40%_result_group.png",
 
 #       отчеты о использовании разных наборов данных с моделями, обученными на
 #       разных наборах
@@ -40,6 +38,9 @@ rule all:
         "reports\\cross_noise_acc_ID.csv",
         "reports\\cross_noise_f1_group.csv",
         "reports\\cross_noise_f1_ID.csv"
+
+gpu_group = 'gpu_tasks'
+
 rule make_original_profiles_csv:
     input:
         "data\\raw"
@@ -89,8 +90,12 @@ rule train_autoencoder:
         "reports\\figures\\DAE_norm_noise_{noise}%.png"
     wildcard_constraints:
         noise="(10|20|30|40|50)"
+    group:
+        gpu_group
+    resources:
+        gpu=1
     shell:
-        "python -m src.models.train {output} --seed{wildcards.noise} --noise_factor {wildcards.noise}"
+        "python -m src.models.train {output} --seed {wildcards.noise} --noise_factor {wildcards.noise}"
 
 rule heat_map:
     input:
@@ -117,20 +122,18 @@ rule train_forest:
     wildcard_constraints:
         noise="(10|20|30|40|50)"
     shell:
-        "python -m src.models.train_forest {input} {output}"
+        "python -m src.models.train_forest {input} {output} --seed {noise}"
 rule cross_validation:
     input:
         "data\\processed\\sets\\set_normal_noise_{noise}%.pkl",
         "models\\DAE_norm_noise_{noise}%.pkl"
     output:
-        "reports\\cross_valid_{noise}%_result.csv",
         "reports\\figures\\cross_valid_{noise}%_result_group.png",
-        "reports\\figures\\cross_valid_{noise}%_result_ID.png"
     wildcard_constraints:
         # noise="(10|20|30|40|50)"
-        noise="(10|20|30|40|50)"
+        noise="(40)"
     shell:
-        "python -m src.models.cross_valid {input} {output} --amount 100"
+        "python -m src.models.cross_valid {input} {output} --amount 1000"
 
 rule importance_analysis:
     input:
