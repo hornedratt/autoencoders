@@ -54,7 +54,7 @@ def confusion_noise(output_path_acc_group: str,
 
         autoencoder = torch.load(os.path.join(f"models\\DAE_norm_noise_{i}%.pkl")).to(device)
         for j in noises:
-            with open(os.path.join(f"data\\processed\\sets\\test_normal_noise_{i}%.pkl"), 'rb') as file:
+            with open(os.path.join(f"data\\processed\\sets\\test_normal_noise_{j}%.pkl"), 'rb') as file:
                 valid_set = pickle.load(file)
 
             valid_set.profile = autoencoder(valid_set.profile)

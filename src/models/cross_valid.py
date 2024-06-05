@@ -15,6 +15,31 @@ import plotly.io as pio
 
 
 from src.data.CustomDataSet import CustomDataSet
+
+
+def unwrapped_func(set, seed, train_size):
+    targets = set.group.to_numpy()
+    train_idx, test_idx = train_test_split(list(range(len(set))),
+                                           train_size=train_size,
+                                           shuffle=True,
+                                           stratify=targets,
+                                           random_state=seed)
+    classifier_group = RandomForestClassifier()
+
+    #       тренируем очередной лес
+    embaddings, group, id = set.subset(train_idx)
+    with torch.no_grad():
+        embaddings = embaddings.numpy()
+    classifier_group.fit(embaddings, group)
+
+    #       тестируем полученный лес
+    embaddings, group, id = set.subset(test_idx)
+    with torch.no_grad():
+        embaddings = embaddings.numpy()
+    pred_group = classifier_group.predict(embaddings)
+
+    return accuracy_score(group, pred_group)
+
 @click.command()
 @click.argument("data_path", type=click.Path())
 @click.argument("model_path", type=click.Path())
@@ -44,35 +69,12 @@ def cross_valid(data_path: str,
     autoencoder = torch.load(model_path).to(device)
     valid_set.profile = autoencoder(valid_set.profile)
 
-    def unwrapped_func(set, seed, train_size):
-        targets = set.group.to_numpy()
-        train_idx, test_idx = train_test_split(list(range(len(set))),
-                                               train_size=train_size,
-                                               shuffle=True,
-                                               stratify=targets,
-                                               random_state=seed)
-        classifier_group = RandomForestClassifier()
-
-        #       тренируем очередной лес
-        embaddings, group, id = set.subset(train_idx)
-        with torch.no_grad():
-            embaddings = embaddings.numpy()
-        classifier_group.fit(embaddings, group)
-
-        #       тестируем полученный лес
-        embaddings, group, id = set.subset(test_idx)
-        with torch.no_grad():
-            embaddings = embaddings.numpy()
-        pred_group = classifier_group.predict(embaddings)
-
-        return accuracy_score(group, pred_group)
-
-    accuracies_group = joblib.Parallel(n_jobs=5, backend='multiprocessing')(
+    accuracies_group = [joblib.Parallel(n_jobs=5, backend='multiprocessing')(
         joblib.delayed(unwrapped_func)(set=valid_set,
                                        seed=i,
-                                       train_size=train_size) for i in pb.progressbar(range(amount)))
+                                       train_size=train_size) for i in pb.progressbar(range(amount)))]
 
-    df = accuracies_group.to_numpy()
+    df = np.array(accuracies_group)
     fig = px.histogram(df,
                        title='accuracy group',
                        marginal='box',
@@ -89,9 +91,8 @@ def cross_valid(data_path: str,
 if __name__ == "__main__":
     cross_valid()
 
-# cross_valid(os.path.join("..", "..", "data\\processed\\sets\\test_set_normal_noise_40%.csv"),
-#             os.path.join("..", "..", "models\\DAE_norm_noise_40%.pkl"),
-#             os.path.join("..", "..", "reports\\cross_valid_40%_result.csv"),
-#             os.path.join("..", "..", "reports\\figures\\cross_valid_40%_result_group.png"),
-#             os.path.join("..", "..", "reports\\figures\\cross_valid_40%_result_id.png")
-#             )
+# if __name__ == "__main__":
+#     cross_valid(os.path.join("..", "..", "data\\processed\\sets\\set_normal_noise_40%.pkl"),
+#                 os.path.join("..", "..", "models\\DAE_norm_noise_40%.pkl"),
+#                 os.path.join("..", "..", "reports\\figures\\cross_valid_40%_result_group.png")
+#                 )

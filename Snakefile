@@ -122,7 +122,7 @@ rule train_forest:
     wildcard_constraints:
         noise="(10|20|30|40|50)"
     shell:
-        "python -m src.models.train_forest {input} {output} --seed {noise}"
+        "python -m src.models.train_forest {input} {output} --seed {wildcards.noise}"
 rule cross_validation:
     input:
         "data\\processed\\sets\\set_normal_noise_{noise}%.pkl",
