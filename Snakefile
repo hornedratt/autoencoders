@@ -1,4 +1,4 @@
-NOISES = [10, 20, 30, 40]
+NOISES = [10, 20, 30, 40, 50]
 
 rule all:
     input:
@@ -58,39 +58,39 @@ rule add_normal_noise:
     output:
         "data\\processed\\sets\\set_normal_noise_{noise}%.pkl"
     wildcard_constraints:
-        noise="(40)"
+        noise="(10|20|30|40|50)"
     shell:
         "python -m src.data.test_noise {input} {output} --noise {wildcards.noise}"
 
-rule preanalysis_orig:
-    input:
-        "data\\processed\\original_MS_profiles.pkl"
-    output:
-        "reports\\figures\\tSNE_orig.png",
-        "reports\\Hopkins_orig.txt"
-    shell:
-        "python -m src.features.preanalysis {input} {output}"
+# rule preanalysis_orig:
+#     input:
+#         "data\\processed\\original_MS_profiles.pkl"
+#     output:
+#         "reports\\figures\\tSNE_orig.png",
+#         "reports\\Hopkins_orig.txt"
+#     shell:
+#         "python -m src.features.preanalysis {input} {output}"
 
-rule preanalysis_noise:
-    input:
-        "data\\processed\\sets\\set_normal_noise_{noise}%.pkl"
-    output:
-        "reports\\figures\\tSNE_{noise}%.png",
-        "reports\\Hopkins_{noise}%.txt"
-
-    wildcard_constraints:
-        noise="(40)"
-    shell:
-        "python -m src.features.preanalysis {input} {output}"
+# rule preanalysis_noise:
+#     input:
+#         "data\\processed\\sets\\set_normal_noise_{noise}%.pkl"
+#     output:
+#         "reports\\figures\\tSNE_{noise}%.png",
+#         "reports\\Hopkins_{noise}%.txt"
+#
+#     wildcard_constraints:
+#         noise="(10|20|30|40|50)"
+#     shell:
+#         "python -m src.features.preanalysis {input} {output}"
 
 rule train_autoencoder:
     output:
         "models\\DAE_norm_noise_{noise}%.pkl",
         "reports\\figures\\DAE_norm_noise_{noise}%.png"
     wildcard_constraints:
-        noise="(40)"
+        noise="(10|20|30|40|50)"
     shell:
-        "python -m src.models.train {output} --noise_factor {wildcards.noise}"
+        "python -m src.models.train {output} --seed{wildcards.noise} --noise_factor {wildcards.noise}"
 
 rule heat_map:
     input:
@@ -100,7 +100,7 @@ rule heat_map:
         "reports\\figures\\heat_map_group_{noise}%.png",
         "reports\\figures\\heat_map_ID_{noise}%.png"
     wildcard_constraints:
-        noise="(40)"
+        noise="(10|20|30|40|50)"
     shell:
         "python -m src.visualization.heat_map {input} {output}"
 
@@ -115,7 +115,7 @@ rule train_forest:
         "models\\forest_{noise}%_ID",
         "reports\\forest_{noise}%_ID.csv"
     wildcard_constraints:
-        noise="(40)"
+        noise="(10|20|30|40|50)"
     shell:
         "python -m src.models.train_forest {input} {output}"
 rule cross_validation:
@@ -127,8 +127,8 @@ rule cross_validation:
         "reports\\figures\\cross_valid_{noise}%_result_group.png",
         "reports\\figures\\cross_valid_{noise}%_result_ID.png"
     wildcard_constraints:
-        # noise="(40)"
-        noise="(40)"
+        # noise="(10|20|30|40|50)"
+        noise="(10|20|30|40|50)"
     shell:
         "python -m src.models.cross_valid {input} {output} --amount 100"
 
@@ -144,7 +144,7 @@ rule importance_analysis:
         "reports\\mz_features_{noise}%_group.txt",
         "reports\\mz_features_{noise}%_ID.txt"
     wildcard_constraints:
-        noise="(40)"
+        noise="(10|20|30|40|50)"
     shell:
         "python -m src.features.importance_analysis {input} {output}"
 rule cross_noise:

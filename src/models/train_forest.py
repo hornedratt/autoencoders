@@ -44,9 +44,10 @@ def train_forest(model_path: str,
 
     size = len(train_set)
     autoencoder = torch.load(model_path).to(device)
+    targets = train_set.group.to_numpy()
 
 #   разбили на train и test
-    idx_train, idx_test = train_test_split(list(range(size)), train_size=0.7)
+    idx_train, idx_test = train_test_split(list(range(size)), train_size=0.7, stratify=targets)
     x_train, y_train_group, y_train_id = train_set.subset(idx_train)
     x_test, y_test_group, y_test_id = train_set.subset(idx_test)
 
@@ -84,9 +85,10 @@ if __name__ == "__main__":
     train_forest()
 
 # train_forest("..\\..\\models\\DAE_norm_noise_40%.pkl",
-#             "..\\..\\data\\processed\\sets\\test_set_normal_noise_40%.csv",
+#             "..\\..\\data\\processed\\sets\\set_normal_noise_40%.pkl",
 #             "..\\..\\models\\forest_40%_group",
 #             "..\\..\\reports\\forest_40%_group.csv",
 #             "..\\..\\models\\forest_40%_ID",
-#             "..\\..\\reports\\forest_40%_ID.csv",
+#             "..\\..\\reports\\forest_40%_group.csv",
+#             "..\\..\\reports\\forest_40%_ID.csv"
 #              )

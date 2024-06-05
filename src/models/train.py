@@ -17,17 +17,19 @@ from src.data.CustomDataSet import CustomDataSet
 from src.data.CustomDataSet import collate_fn
 from src.visualization.figure_accuracy_per_epoch import losses_plot
 
-# @click.command()
-# @click.argument("output_path_model", type=click.Path())
-# @click.argument("output_path_figure", type=click.Path())
-# @click.option("--n_epochs", default=50, type=int)
-# @click.option("--lr", default=0.001, type=float)
-# @click.option("--noise_factor", default=40, type=float)
-# @click.option("--batch_size", default=1, type=int)
-# @click.option("--set_size", default=300, type=int)
-# @click.option("--train_size", default=0.7, type=float)
+@click.command()
+@click.argument("output_path_model", type=click.Path())
+@click.argument("output_path_figure", type=click.Path())
+@click.argument("--seed", default=42, type=int)
+@click.option("--n_epochs", default=50, type=int)
+@click.option("--lr", default=0.001, type=float)
+@click.option("--noise_factor", default=40, type=float)
+@click.option("--batch_size", default=1, type=int)
+@click.option("--set_size", default=300, type=int)
+@click.option("--train_size", default=0.7, type=float)
 def train_autoencoder(output_path_model: str,
                   output_path_figure: str,
+                  seed: int = 42,
                   n_epochs: int = 50,
                   lr: float = 0.001,
                   noise_factor: float = 40,
@@ -52,9 +54,9 @@ def train_autoencoder(output_path_model: str,
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # для репитативности результатов
-    random.seed(1)
-    np.random.seed(1)
-    torch.manual_seed(1)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
     warnings.filterwarnings('ignore')
 
@@ -136,9 +138,9 @@ def train_autoencoder(output_path_model: str,
                     valid_losses=val_losses,
                     output_path=output_path_figure)
 
-# if __name__ == "__main__":
-#     train_autoencoder()
+if __name__ == "__main__":
+    train_autoencoder()
 
-train_autoencoder(output_path_model=os.path.join('..', '..', 'models', f'DAE_norm_noise_{40}%.pkl'),
-              output_path_figure=os.path.join('..', '..', 'reports', 'figures', f'DAE_norm_noise_{40}%.png'))
+# train_autoencoder(output_path_model=os.path.join('..', '..', 'models', f'DAE_norm_noise_{40}%.pkl'),
+#               output_path_figure=os.path.join('..', '..', 'reports', 'figures', f'DAE_norm_noise_{40}%.png'))
 
