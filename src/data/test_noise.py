@@ -47,9 +47,8 @@ def test_noise(input_path: str,
         final_tmp_pd['ID'] = main['ID']
         final_tmp_pd.columns = original_profiles.columns
         final = pd.concat([final, final_tmp_pd], axis=0)
-    final = CustomDataSet(final.drop('group', axis=1).drop('ID', axis=1).to_numpy(dtype=float),
-                              final['group'].reset_index(drop=True),
-                              final['ID'].reset_index(drop=True))
+
+
     with open(output_path, 'wb') as file:
         pickle.dump(final, file)
 
